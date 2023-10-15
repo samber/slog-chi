@@ -90,19 +90,25 @@ err := http.ListenAndServe(":4242", router)
 // time=2023-10-15T20:32:58.926+02:00 level=INFO msg=OK env=production http.time=2023-10-15T18:32:58Z http.latency=20.834µs http.method=GET http.path=/ http.status=200 http.user-agent=curl/7.77.0
 ```
 
+### Verbose
+
+```go
+logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+config := slogchi.Config{
+	WithRequestBody: true,
+	WithResponseBody: true,
+	WithRequestHeader: true,
+	WithResponseHeader: true,
+}
+
+router := chi.NewRouter()
+router.Use(slogchi.NewWithConfig(logger, config))
+```
+
 ### Filters
 
 ```go
-import (
-	"net/http"
-	"os"
-	"time"
-
-	"github.com/go-chi/chi/v5"
-	slogchi "github.com/samber/slog-chi"
-	"log/slog"
-)
-
 logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 router := chi.NewRouter()
@@ -180,14 +186,6 @@ err := http.ListenAndServe(":4242", router)
 ### Using custom logger sub-group
 
 ```go
-import (
-	"github.com/go-chi/chi/v5"
-	slogchi "github.com/samber/slog-chi"
-	"log/slog"
-)
-
-// Create a slog logger, which:
-//   - Logs to stdout.
 logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 // Chi instance
@@ -214,14 +212,6 @@ err := http.ListenAndServe(":4242", router)
 ### Adding custom attributes
 
 ```go
-import (
-	"github.com/go-chi/chi/v5"
-	slogchi "github.com/samber/slog-chi"
-	"log/slog"
-)
-
-// Create a slog logger, which:
-//   - Logs to stdout.
 logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 // Add an attribute to all log entries made through this logger.
@@ -235,6 +225,8 @@ router.Use(slogchi.New(logger))
 
 // Routes
 router.GET("/", func(w http.ResponseWriter, r *http.Request) {
+	// Add an attribute to a single log entry.
+	slogchi.AddCustomAttributes(r, slog.String("foo", "bar"))
 	w.Write([]byte("Hello, World!"))
 })
 
@@ -242,20 +234,12 @@ router.GET("/", func(w http.ResponseWriter, r *http.Request) {
 err := http.ListenAndServe(":4242", router)
 
 // output:
-// time=2023-10-15T20:32:58.926+02:00 level=INFO msg=OK env=production http.time=2023-10-15T18:32:58Z http.latency=20.834µs http.method=GET http.path=/ http.status=200 http.user-agent=curl/7.77.0
+// time=2023-10-15T20:32:58.926+02:00 level=INFO msg=OK env=production time=2023-10-15T18:32:58Z latency=20.834µs method=GET path=/ status=200 user-agent=curl/7.77.0 foo=bar
 ```
 
 ### JSON output
 
 ```go
-import (
-	"github.com/go-chi/chi/v5"
-	slogchi "github.com/samber/slog-chi"
-	"log/slog"
-)
-
-// Create a slog logger, which:
-//   - Logs to stdout.
 logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 // Chi instance

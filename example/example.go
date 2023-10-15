@@ -32,6 +32,8 @@ func main() {
 	r := chi.NewRouter()
 
 	// Middleware
+	// config := slogchi.Config{WithRequestBody: true, WithResponseBody: true, WithRequestHeader: true, WithResponseHeader: true}
+	// r.Use(slogchi.NewWithConfig(logger, config))
 	r.Use(slogchi.New(logger.WithGroup("http")))
 
 	// Routes
@@ -39,6 +41,7 @@ func main() {
 		w.Write([]byte("welcome"))
 	})
 	r.Get("/foobar/*", func(w http.ResponseWriter, r *http.Request) {
+		slogchi.AddCustomAttributes(r, slog.String("foo", "bar"))
 		w.Write([]byte("welcome"))
 	})
 	r.Get("/error", func(w http.ResponseWriter, r *http.Request) {
