@@ -7,6 +7,7 @@ import (
 
 	"log/slog"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
@@ -67,6 +68,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				// status := r.Response.StatusCode
 				status := ww.Status()
 				method := r.Method
+				route := chi.RouteContext(r.Context()).RoutePattern()
 				end := time.Now()
 				latency := end.Sub(start)
 				// ip := "x.x.x.x"
@@ -77,6 +79,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					slog.Duration("latency", latency),
 					slog.String("method", method),
 					slog.String("path", path),
+					slog.String("route", route),
 					slog.Int("status", status),
 					// slog.String("ip", ip),
 					slog.String("user-agent", userAgent),
