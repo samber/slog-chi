@@ -98,8 +98,6 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				}
 
 				logger.LogAttrs(context.Background(), level, http.StatusText(status), attributes...)
-
-				return
 			}()
 
 			next.ServeHTTP(ww, r)
