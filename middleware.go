@@ -140,6 +140,10 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					slog.String("user-agent", userAgent),
 				}
 
+				if config.WithRequestBody {
+					attributes = append(attributes, slog.String("request-id", middleware.GetReqID(r.Context())))
+				}
+
 				// request
 				if config.WithRequestBody {
 					attributes = append(attributes, slog.Group("request", slog.String("body", string(reqBody))))
