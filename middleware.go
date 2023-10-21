@@ -177,11 +177,9 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 
 				level := config.DefaultLevel
 				if status >= http.StatusInternalServerError {
-					logger.LogAttrs(context.Background(), config.ServerErrorLevel, http.StatusText(status), attributes...)
 					level = config.ServerErrorLevel
 				} else if status >= http.StatusBadRequest && status < http.StatusInternalServerError {
 					level = config.ClientErrorLevel
-					logger.LogAttrs(context.Background(), config.ClientErrorLevel, http.StatusText(status), attributes...)
 				}
 
 				logger.LogAttrs(context.Background(), level, http.StatusText(status), attributes...)
