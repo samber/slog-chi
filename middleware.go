@@ -193,7 +193,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					level = config.ClientErrorLevel
 				}
 
-				logger.LogAttrs(context.Background(), level, http.StatusText(status), attributes...)
+				logger.LogAttrs(r.Context(), level, http.StatusText(status), attributes...)
 			}()
 
 			next.ServeHTTP(ww, r)
