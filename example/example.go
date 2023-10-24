@@ -8,6 +8,7 @@ import (
 	"log/slog"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	slogchi "github.com/samber/slog-chi"
 	slogformatter "github.com/samber/slog-formatter"
 )
@@ -35,6 +36,7 @@ func main() {
 	// config := slogchi.Config{WithRequestBody: true, WithResponseBody: true, WithRequestHeader: true, WithResponseHeader: true}
 	// r.Use(slogchi.NewWithConfig(logger, config))
 	r.Use(slogchi.New(logger.WithGroup("http")))
+	r.Use(middleware.Recoverer)
 
 	// Routes
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {

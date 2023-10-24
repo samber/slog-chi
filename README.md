@@ -61,6 +61,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	slogchi "github.com/samber/slog-chi"
 	"log/slog"
 )
@@ -74,6 +75,7 @@ router := chi.NewRouter()
 
 // Middleware
 router.Use(slogchi.New(logger))
+router.Use(middleware.Recoverer)
 
 // Routes
 router.GET("/", func(w http.ResponseWriter, r *http.Request) {
@@ -104,6 +106,7 @@ config := slogchi.Config{
 
 router := chi.NewRouter()
 router.Use(slogchi.NewWithConfig(logger, config))
+router.Use(middleware.Recoverer)
 ```
 
 ### Filters
@@ -121,6 +124,7 @@ router.Use(
 		slogchi.IgnoreStatus(401, 404),
 	),
 )
+router.Use(middleware.Recoverer)
 ```
 
 Available filters:
@@ -145,6 +149,7 @@ Available filters:
 ```go
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	slogchi "github.com/samber/slog-chi"
 	slogformatter "github.com/samber/slog-formatter"
 	"log/slog"
@@ -167,6 +172,7 @@ router := chi.NewRouter()
 
 // Middleware
 router.Use(slogchi.New(logger))
+router.Use(middleware.Recoverer)
 
 // Routes
 router.GET("/", func(w http.ResponseWriter, r *http.Request) {
@@ -193,6 +199,7 @@ router := chi.NewRouter()
 
 // Middleware
 router.Use(slogchi.New(logger.WithGroup("http")))
+router.Use(middleware.Recoverer)
 
 // Routes
 router.GET("/", func(w http.ResponseWriter, r *http.Request) {
@@ -222,6 +229,7 @@ router := chi.NewRouter()
 
 // Middleware
 router.Use(slogchi.New(logger))
+router.Use(middleware.Recoverer)
 
 // Routes
 router.GET("/", func(w http.ResponseWriter, r *http.Request) {
@@ -247,6 +255,7 @@ router := chi.NewRouter()
 
 // Middleware
 router.Use(slogchi.New(logger))
+router.Use(middleware.Recoverer)
 
 // Routes
 router.GET("/", func(w http.ResponseWriter, r *http.Request) {
