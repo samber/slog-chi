@@ -47,7 +47,7 @@ func IgnoreMethod(methods ...string) Filter {
 func AcceptStatus(statuses ...int) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
 		for _, status := range statuses {
-			if status == r.Response.StatusCode {
+			if status == ww.Status() {
 				return true
 			}
 		}
@@ -59,7 +59,7 @@ func AcceptStatus(statuses ...int) Filter {
 func IgnoreStatus(statuses ...int) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
 		for _, status := range statuses {
-			if status == r.Response.StatusCode {
+			if status == ww.Status() {
 				return false
 			}
 		}
@@ -70,25 +70,25 @@ func IgnoreStatus(statuses ...int) Filter {
 
 func AcceptStatusGreaterThan(status int) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		return r.Response.StatusCode > status
+		return ww.Status() > status
 	}
 }
 
 func IgnoreStatusLessThan(status int) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		return r.Response.StatusCode < status
+		return ww.Status() < status
 	}
 }
 
 func AcceptStatusGreaterThanOrEqual(status int) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		return r.Response.StatusCode >= status
+		return ww.Status() >= status
 	}
 }
 
 func IgnoreStatusLessThanOrEqual(status int) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		return r.Response.StatusCode <= status
+		return ww.Status() <= status
 	}
 }
 
