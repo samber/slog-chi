@@ -92,6 +92,21 @@ err := http.ListenAndServe(":4242", router)
 // time=2023-10-15T20:32:58.926+02:00 level=INFO msg=OK env=production http.time=2023-10-15T18:32:58Z http.latency=20.834µs http.method=GET http.path=/ http.status=200 http.user-agent=curl/7.77.0
 ```
 
+### OTEL
+
+```go
+logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+config := slogchi.Config{
+	WithSpanID:  true,
+	WithTraceID: true,
+}
+
+router := chi.NewRouter()
+router.Use(slogchi.NewWithConfig(logger, config))
+router.Use(middleware.Recoverer)
+```
+
 ### Verbose
 
 ```go
