@@ -147,7 +147,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					slog.String("user-agent", userAgent),
 				}
 
-				if config.WithRequestBody {
+				if config.WithRequestID {
 					attributes = append(attributes, slog.String("request-id", middleware.GetReqID(r.Context())))
 				}
 
