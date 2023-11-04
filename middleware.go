@@ -4,20 +4,20 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
-
-	"log/slog"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	customAttributesCtxKey = "slog-chi.custom-attributes"
-)
+var customAttributesCtxKey = customAttributesCtxKeyType{}
+
+type customAttributesCtxKeyType struct{}
 
 var (
 	RequestBodyMaxSize  = 64 * 1024 // 64KB
@@ -41,14 +41,17 @@ type Config struct {
 	ClientErrorLevel slog.Level
 	ServerErrorLevel slog.Level
 
-	WithUserAgent      bool
-	WithRequestID      bool
-	WithRequestBody    bool
-	WithRequestHeader  bool
-	WithResponseBody   bool
-	WithResponseHeader bool
-	WithSpanID         bool
-	WithTraceID        bool
+	WithUserAgent        bool
+	WithRequestIP        bool
+	WithRequestID        bool
+	WithRequestBody      bool
+	WithRequestBodySize  bool
+	WithRequestHeader    bool
+	WithResponseBody     bool
+	WithResponseBodySize bool
+	WithResponseHeader   bool
+	WithSpanID           bool
+	WithTraceID          bool
 
 	Filters []Filter
 }
@@ -63,14 +66,17 @@ func New(logger *slog.Logger) func(http.Handler) http.Handler {
 		ClientErrorLevel: slog.LevelWarn,
 		ServerErrorLevel: slog.LevelError,
 
-		WithUserAgent:      false,
-		WithRequestID:      true,
-		WithRequestBody:    false,
-		WithRequestHeader:  false,
-		WithResponseBody:   false,
-		WithResponseHeader: false,
-		WithSpanID:         false,
-		WithTraceID:        false,
+		WithUserAgent:        false,
+		WithRequestIP:        false,
+		WithRequestID:        true,
+		WithRequestBody:      false,
+		WithRequestBodySize:  false,
+		WithRequestHeader:    false,
+		WithResponseBody:     false,
+		WithResponseBodySize: false,
+		WithResponseHeader:   false,
+		WithSpanID:           false,
+		WithTraceID:          false,
 
 		Filters: []Filter{},
 	})
@@ -86,14 +92,17 @@ func NewWithFilters(logger *slog.Logger, filters ...Filter) func(http.Handler) h
 		ClientErrorLevel: slog.LevelWarn,
 		ServerErrorLevel: slog.LevelError,
 
-		WithUserAgent:      false,
-		WithRequestID:      true,
-		WithRequestBody:    false,
-		WithRequestHeader:  false,
-		WithResponseBody:   false,
-		WithResponseHeader: false,
-		WithSpanID:         false,
-		WithTraceID:        false,
+		WithUserAgent:        false,
+		WithRequestIP:        false,
+		WithRequestID:        true,
+		WithRequestBody:      false,
+		WithRequestBodySize:  false,
+		WithRequestHeader:    false,
+		WithResponseBody:     false,
+		WithResponseBodySize: false,
+		WithResponseHeader:   false,
+		WithSpanID:           false,
+		WithTraceID:          false,
 
 		Filters: filters,
 	})
@@ -107,8 +116,11 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 			path := r.URL.Path
 
 			// dump request body
-			var reqBody []byte
-			if config.WithRequestBody {
+			var (
+				reqBody     []byte
+				reqBodySize int
+			)
+			if config.WithRequestBody || config.WithRequestBodySize {
 				buf, err := io.ReadAll(r.Body)
 				if err == nil {
 					r.Body = io.NopCloser(bytes.NewBuffer(buf))
@@ -117,6 +129,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					} else {
 						reqBody = buf
 					}
+					reqBodySize = len(buf)
 				}
 			}
 
@@ -127,19 +140,14 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			defer func() {
-				// headers := ww.Header()
-				// length := ww.BytesWritten()
-
-				// status := r.Response.StatusCode
 				status := ww.Status()
 				method := r.Method
 				route := chi.RouteContext(r.Context()).RoutePattern()
 				end := time.Now()
 				latency := end.Sub(start)
-				// ip := "x.x.x.x"
 				userAgent := r.UserAgent()
 
-				attributes := []slog.Attr{
+				rqAttributes := []slog.Attr{
 					slog.Time("time", end),
 					slog.Duration("latency", latency),
 					slog.String("method", method),
@@ -150,49 +158,71 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				}
 
 				if config.WithUserAgent {
-					attributes = append(attributes, slog.String("user-agent", userAgent))
+					rqAttributes = append(rqAttributes, slog.String("user-agent", userAgent))
+				}
+
+				if config.WithRequestIP {
+					rqAttributes = append(rqAttributes, slog.String("ip", r.RemoteAddr))
 				}
 
 				if config.WithRequestID {
-					attributes = append(attributes, slog.String("request-id", middleware.GetReqID(r.Context())))
+					rqAttributes = append(rqAttributes, slog.String("id", middleware.GetReqID(r.Context())))
 				}
 
 				// otel
 				if config.WithTraceID {
 					traceID := trace.SpanFromContext(r.Context()).SpanContext().TraceID().String()
-					attributes = append(attributes, slog.String("trace-id", traceID))
+					rqAttributes = append(rqAttributes, slog.String("trace-id", traceID))
 				}
 				if config.WithSpanID {
 					spanID := trace.SpanFromContext(r.Context()).SpanContext().SpanID().String()
-					attributes = append(attributes, slog.String("span-id", spanID))
+					rqAttributes = append(rqAttributes, slog.String("span-id", spanID))
 				}
 
 				// request
 				if config.WithRequestBody {
-					attributes = append(attributes, slog.Group("request", slog.String("body", string(reqBody))))
+					rqAttributes = append(rqAttributes, slog.String("body", string(reqBody)))
+				}
+				if config.WithRequestBodySize {
+					rqAttributes = append(rqAttributes, slog.Int("bytes", reqBodySize))
 				}
 				if config.WithRequestHeader {
 					for k, v := range r.Header {
 						if _, found := HiddenRequestHeaders[strings.ToLower(k)]; found {
 							continue
 						}
-						attributes = append(attributes, slog.Group("request", slog.Group("header", slog.Any(k, v))))
+						rqAttributes = append(rqAttributes, slog.Group("header", slog.Any(k, v)))
 					}
 				}
 
+				var rsAttributes []slog.Attr
 				// response
 				if config.WithResponseBody {
 					if w, ok := w.(*bodyWriter); ok {
-						attributes = append(attributes, slog.Group("response", slog.String("body", w.body.String())))
+						rsAttributes = append(rsAttributes, slog.String("body", w.body.String()))
 					}
+				}
+				if config.WithResponseBodySize {
+					rsAttributes = append(rsAttributes, slog.Int("bytes", ww.BytesWritten()))
 				}
 				if config.WithResponseHeader {
 					for k, v := range w.Header() {
 						if _, found := HiddenResponseHeaders[strings.ToLower(k)]; found {
 							continue
 						}
-						attributes = append(attributes, slog.Group("response", slog.Group("header", slog.Any(k, v))))
+						rsAttributes = append(rsAttributes, slog.Group("header", slog.Any(k, v)))
 					}
+				}
+
+				attributes := []slog.Attr{
+					{
+						Key:   "request",
+						Value: slog.GroupValue(rqAttributes...),
+					},
+					{
+						Key:   "response",
+						Value: slog.GroupValue(rsAttributes...),
+					},
 				}
 
 				// custom context values
@@ -216,7 +246,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					level = config.ClientErrorLevel
 				}
 
-				logger.LogAttrs(r.Context(), level, http.StatusText(status), attributes...)
+				logger.LogAttrs(r.Context(), level, strconv.Itoa(status)+": "+http.StatusText(status), attributes...)
 			}()
 
 			next.ServeHTTP(ww, r)
