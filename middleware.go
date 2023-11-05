@@ -1,9 +1,7 @@
 package slogchi
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -106,28 +104,17 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 			start := time.Now()
 			path := r.URL.Path
 
-			// dump request body
-			var (
-				reqBody     []byte
-				reqBodySize int
-			)
-			buf, err := io.ReadAll(r.Body)
-			if err == nil {
-				r.Body = io.NopCloser(bytes.NewBuffer(buf))
-				if len(buf) > RequestBodyMaxSize {
-					reqBody = buf[:RequestBodyMaxSize]
-				} else {
-					reqBody = buf
-				}
-				reqBodySize = len(buf)
-			}
+			br := newBodyReader(r.Body, RequestBodyMaxSize, config.WithRequestBody)
+			r.Body = br
+
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			var bw *bodyWriter
 
 			// dump response body
 			if config.WithResponseBody {
-				w = newBodyWriter(w, ResponseBodyMaxSize)
+				bw = newBodyWriter(ResponseBodyMaxSize)
+				ww.Tee(bw)
 			}
-
-			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			defer func() {
 				status := ww.Status()
 				method := r.Method
@@ -163,10 +150,10 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 
 				// request
 				if config.WithRequestBody {
-					rqAttributes = append(rqAttributes, slog.String("body", string(reqBody)))
+					rqAttributes = append(rqAttributes, slog.String("body", br.body.String()))
 				}
 
-				rqAttributes = append(rqAttributes, slog.Int("bytes", reqBodySize))
+				rqAttributes = append(rqAttributes, slog.Int("bytes", br.bytes))
 				if config.WithRequestHeader {
 					for k, v := range r.Header {
 						if _, found := HiddenRequestHeaders[strings.ToLower(k)]; found {
@@ -183,9 +170,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				}
 				// response
 				if config.WithResponseBody {
-					if w, ok := w.(*bodyWriter); ok {
-						rsAttributes = append(rsAttributes, slog.String("body", w.body.String()))
-					}
+					rsAttributes = append(rsAttributes, slog.String("body", bw.body.String()))
 				}
 				rsAttributes = append(rsAttributes, slog.Int("bytes", ww.BytesWritten()))
 				if config.WithResponseHeader {
