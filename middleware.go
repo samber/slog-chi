@@ -41,17 +41,14 @@ type Config struct {
 	ClientErrorLevel slog.Level
 	ServerErrorLevel slog.Level
 
-	WithUserAgent        bool
-	WithRequestIP        bool
-	WithRequestID        bool
-	WithRequestBody      bool
-	WithRequestBodySize  bool
-	WithRequestHeader    bool
-	WithResponseBody     bool
-	WithResponseBodySize bool
-	WithResponseHeader   bool
-	WithSpanID           bool
-	WithTraceID          bool
+	WithUserAgent      bool
+	WithRequestID      bool
+	WithRequestBody    bool
+	WithRequestHeader  bool
+	WithResponseBody   bool
+	WithResponseHeader bool
+	WithSpanID         bool
+	WithTraceID        bool
 
 	Filters []Filter
 }
@@ -66,17 +63,14 @@ func New(logger *slog.Logger) func(http.Handler) http.Handler {
 		ClientErrorLevel: slog.LevelWarn,
 		ServerErrorLevel: slog.LevelError,
 
-		WithUserAgent:        false,
-		WithRequestIP:        false,
-		WithRequestID:        true,
-		WithRequestBody:      false,
-		WithRequestBodySize:  false,
-		WithRequestHeader:    false,
-		WithResponseBody:     false,
-		WithResponseBodySize: false,
-		WithResponseHeader:   false,
-		WithSpanID:           false,
-		WithTraceID:          false,
+		WithUserAgent:      false,
+		WithRequestID:      true,
+		WithRequestBody:    false,
+		WithRequestHeader:  false,
+		WithResponseBody:   false,
+		WithResponseHeader: false,
+		WithSpanID:         false,
+		WithTraceID:        false,
 
 		Filters: []Filter{},
 	})
@@ -92,17 +86,14 @@ func NewWithFilters(logger *slog.Logger, filters ...Filter) func(http.Handler) h
 		ClientErrorLevel: slog.LevelWarn,
 		ServerErrorLevel: slog.LevelError,
 
-		WithUserAgent:        false,
-		WithRequestIP:        false,
-		WithRequestID:        true,
-		WithRequestBody:      false,
-		WithRequestBodySize:  false,
-		WithRequestHeader:    false,
-		WithResponseBody:     false,
-		WithResponseBodySize: false,
-		WithResponseHeader:   false,
-		WithSpanID:           false,
-		WithTraceID:          false,
+		WithUserAgent:      false,
+		WithRequestID:      true,
+		WithRequestBody:    false,
+		WithRequestHeader:  false,
+		WithResponseBody:   false,
+		WithResponseHeader: false,
+		WithSpanID:         false,
+		WithTraceID:        false,
 
 		Filters: filters,
 	})
@@ -120,17 +111,15 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				reqBody     []byte
 				reqBodySize int
 			)
-			if config.WithRequestBody || config.WithRequestBodySize {
-				buf, err := io.ReadAll(r.Body)
-				if err == nil {
-					r.Body = io.NopCloser(bytes.NewBuffer(buf))
-					if len(buf) > RequestBodyMaxSize {
-						reqBody = buf[:RequestBodyMaxSize]
-					} else {
-						reqBody = buf
-					}
-					reqBodySize = len(buf)
+			buf, err := io.ReadAll(r.Body)
+			if err == nil {
+				r.Body = io.NopCloser(bytes.NewBuffer(buf))
+				if len(buf) > RequestBodyMaxSize {
+					reqBody = buf[:RequestBodyMaxSize]
+				} else {
+					reqBody = buf
 				}
+				reqBodySize = len(buf)
 			}
 
 			// dump response body
@@ -154,15 +143,11 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					slog.String("path", path),
 					slog.String("route", route),
 					slog.Int("status", status),
-					// slog.String("ip", ip),
+					slog.String("ip", r.RemoteAddr),
 				}
 
 				if config.WithUserAgent {
 					rqAttributes = append(rqAttributes, slog.String("user-agent", userAgent))
-				}
-
-				if config.WithRequestIP {
-					rqAttributes = append(rqAttributes, slog.String("ip", r.RemoteAddr))
 				}
 
 				if config.WithRequestID {
@@ -183,9 +168,8 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				if config.WithRequestBody {
 					rqAttributes = append(rqAttributes, slog.String("body", string(reqBody)))
 				}
-				if config.WithRequestBodySize {
-					rqAttributes = append(rqAttributes, slog.Int("bytes", reqBodySize))
-				}
+
+				rqAttributes = append(rqAttributes, slog.Int("bytes", reqBodySize))
 				if config.WithRequestHeader {
 					for k, v := range r.Header {
 						if _, found := HiddenRequestHeaders[strings.ToLower(k)]; found {
@@ -202,9 +186,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 						rsAttributes = append(rsAttributes, slog.String("body", w.body.String()))
 					}
 				}
-				if config.WithResponseBodySize {
-					rsAttributes = append(rsAttributes, slog.Int("bytes", ww.BytesWritten()))
-				}
+				rsAttributes = append(rsAttributes, slog.Int("bytes", ww.BytesWritten()))
 				if config.WithResponseHeader {
 					for k, v := range w.Header() {
 						if _, found := HiddenResponseHeaders[strings.ToLower(k)]; found {
