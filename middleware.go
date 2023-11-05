@@ -137,12 +137,9 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				userAgent := r.UserAgent()
 
 				rqAttributes := []slog.Attr{
-					slog.Time("time", end),
-					slog.Duration("latency", latency),
 					slog.String("method", method),
 					slog.String("path", path),
 					slog.String("route", route),
-					slog.Int("status", status),
 					slog.String("ip", r.RemoteAddr),
 				}
 
@@ -179,7 +176,11 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					}
 				}
 
-				var rsAttributes []slog.Attr
+				rsAttributes := []slog.Attr{
+					slog.Time("time", end),
+					slog.Duration("latency", latency),
+					slog.Int("status", status),
+				}
 				// response
 				if config.WithResponseBody {
 					if w, ok := w.(*bodyWriter); ok {
