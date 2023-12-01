@@ -41,6 +41,7 @@ type Config struct {
 	ClientErrorLevel slog.Level
 	ServerErrorLevel slog.Level
 
+	WithUserAgent      bool
 	WithRequestID      bool
 	WithRequestBody    bool
 	WithRequestHeader  bool
@@ -62,6 +63,7 @@ func New(logger *slog.Logger) func(http.Handler) http.Handler {
 		ClientErrorLevel: slog.LevelWarn,
 		ServerErrorLevel: slog.LevelError,
 
+		WithUserAgent:      false,
 		WithRequestID:      true,
 		WithRequestBody:    false,
 		WithRequestHeader:  false,
@@ -84,6 +86,7 @@ func NewWithFilters(logger *slog.Logger, filters ...Filter) func(http.Handler) h
 		ClientErrorLevel: slog.LevelWarn,
 		ServerErrorLevel: slog.LevelError,
 
+		WithUserAgent:      false,
 		WithRequestID:      true,
 		WithRequestBody:    false,
 		WithRequestHeader:  false,
@@ -144,7 +147,10 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					slog.String("route", route),
 					slog.Int("status", status),
 					// slog.String("ip", ip),
-					slog.String("user-agent", userAgent),
+				}
+
+				if config.WithUserAgent {
+					attributes = append(attributes, slog.String("user-agent", userAgent))
 				}
 
 				if config.WithRequestID {
