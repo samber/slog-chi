@@ -15,9 +15,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	customAttributesCtxKey = "slog-chi.custom-attributes"
-)
+type customAttributesCtxKey struct{}
 
 var (
 	RequestBodyMaxSize  = 64 * 1024 // 64KB
@@ -196,7 +194,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				}
 
 				// custom context values
-				if v := r.Context().Value(customAttributesCtxKey); v != nil {
+				if v := r.Context().Value(customAttributesCtxKey{}); v != nil {
 					switch attrs := v.(type) {
 					case []slog.Attr:
 						attributes = append(attributes, attrs...)
@@ -225,14 +223,14 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 }
 
 func AddCustomAttributes(r *http.Request, attr slog.Attr) {
-	v := r.Context().Value(customAttributesCtxKey)
+	v := r.Context().Value(customAttributesCtxKey{})
 	if v == nil {
-		*r = *r.WithContext(context.WithValue(r.Context(), customAttributesCtxKey, []slog.Attr{attr}))
+		*r = *r.WithContext(context.WithValue(r.Context(), customAttributesCtxKey{}, []slog.Attr{attr}))
 		return
 	}
 
 	switch attrs := v.(type) {
 	case []slog.Attr:
-		*r = *r.WithContext(context.WithValue(r.Context(), customAttributesCtxKey, append(attrs, attr)))
+		*r = *r.WithContext(context.WithValue(r.Context(), customAttributesCtxKey{}, append(attrs, attr)))
 	}
 }
