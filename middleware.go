@@ -123,75 +123,85 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				latency := end.Sub(start)
 				userAgent := r.UserAgent()
 
-				rqAttributes := []slog.Attr{
+				baseAttributes := []slog.Attr{}
+
+				requestAttributes := []slog.Attr{
+					slog.Time("time", start),
 					slog.String("method", method),
 					slog.String("path", path),
 					slog.String("route", route),
 					slog.String("ip", r.RemoteAddr),
 				}
 
-				if config.WithUserAgent {
-					rqAttributes = append(rqAttributes, slog.String("user-agent", userAgent))
+				responseAttributes := []slog.Attr{
+					slog.Time("time", end),
+					slog.Duration("latency", latency),
+					slog.Int("status", status),
 				}
 
 				if config.WithRequestID {
-					rqAttributes = append(rqAttributes, slog.String("id", middleware.GetReqID(r.Context())))
+					baseAttributes = append(baseAttributes, slog.String("id", middleware.GetReqID(r.Context())))
 				}
 
 				// otel
 				if config.WithTraceID {
 					traceID := trace.SpanFromContext(r.Context()).SpanContext().TraceID().String()
-					rqAttributes = append(rqAttributes, slog.String("trace-id", traceID))
+					baseAttributes = append(baseAttributes, slog.String("trace-id", traceID))
 				}
 				if config.WithSpanID {
 					spanID := trace.SpanFromContext(r.Context()).SpanContext().SpanID().String()
-					rqAttributes = append(rqAttributes, slog.String("span-id", spanID))
+					baseAttributes = append(baseAttributes, slog.String("span-id", spanID))
 				}
 
-				// request
+				// request body
+				requestAttributes = append(requestAttributes, slog.Int("length", br.bytes))
 				if config.WithRequestBody {
-					rqAttributes = append(rqAttributes, slog.String("body", br.body.String()))
+					requestAttributes = append(requestAttributes, slog.String("body", br.body.String()))
 				}
 
-				rqAttributes = append(rqAttributes, slog.Int("bytes", br.bytes))
+				// request headers
 				if config.WithRequestHeader {
 					for k, v := range r.Header {
 						if _, found := HiddenRequestHeaders[strings.ToLower(k)]; found {
 							continue
 						}
-						rqAttributes = append(rqAttributes, slog.Group("header", slog.Any(k, v)))
+						requestAttributes = append(requestAttributes, slog.Group("header", slog.Any(k, v)))
 					}
 				}
 
-				rsAttributes := []slog.Attr{
-					slog.Time("time", end),
-					slog.Duration("latency", latency),
-					slog.Int("status", status),
+				if config.WithUserAgent {
+					requestAttributes = append(requestAttributes, slog.String("user-agent", userAgent))
 				}
-				// response
+
+				// response body
+				responseAttributes = append(responseAttributes, slog.Int("length", ww.BytesWritten()))
 				if config.WithResponseBody {
-					rsAttributes = append(rsAttributes, slog.String("body", bw.body.String()))
+					responseAttributes = append(responseAttributes, slog.String("body", bw.body.String()))
 				}
-				rsAttributes = append(rsAttributes, slog.Int("bytes", ww.BytesWritten()))
+
+				// response headers
 				if config.WithResponseHeader {
 					for k, v := range w.Header() {
 						if _, found := HiddenResponseHeaders[strings.ToLower(k)]; found {
 							continue
 						}
-						rsAttributes = append(rsAttributes, slog.Group("header", slog.Any(k, v)))
+						responseAttributes = append(responseAttributes, slog.Group("header", slog.Any(k, v)))
 					}
 				}
 
-				attributes := []slog.Attr{
-					{
-						Key:   "request",
-						Value: slog.GroupValue(rqAttributes...),
+				attributes := append(
+					[]slog.Attr{
+						{
+							Key:   "request",
+							Value: slog.GroupValue(requestAttributes...),
+						},
+						{
+							Key:   "response",
+							Value: slog.GroupValue(responseAttributes...),
+						},
 					},
-					{
-						Key:   "response",
-						Value: slog.GroupValue(rsAttributes...),
-					},
-				}
+					baseAttributes...,
+				)
 
 				// custom context values
 				if v := r.Context().Value(customAttributesCtxKey); v != nil {
