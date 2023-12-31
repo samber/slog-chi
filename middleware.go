@@ -13,9 +13,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var customAttributesCtxKey = customAttributesCtxKeyType{}
-
 type customAttributesCtxKeyType struct{}
+
+var customAttributesCtxKey = customAttributesCtxKeyType{}
 
 var (
 	RequestBodyMaxSize  = 64 * 1024 // 64KB

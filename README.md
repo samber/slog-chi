@@ -108,6 +108,22 @@ router.Use(slogchi.NewWithConfig(logger, config))
 router.Use(middleware.Recoverer)
 ```
 
+### Custom log levels
+
+```go
+logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+config := slogchi.Config{
+	DefaultLevel:     slog.LevelInfo,
+	ClientErrorLevel: slog.LevelWarn,
+	ServerErrorLevel: slog.LevelError,
+}
+
+router := chi.NewRouter()
+router.Use(slogchi.NewWithConfig(logger, config))
+router.Use(middleware.Recoverer)
+```
+
 ### Verbose
 
 ```go
