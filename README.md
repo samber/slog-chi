@@ -90,7 +90,7 @@ router.GET("/error", func(w http.ResponseWriter, r *http.Request) {
 err := http.ListenAndServe(":4242", router)
 
 // output:
-// time=2023-10-15T20:32:58.926+02:00 level=INFO msg=OK env=production http.time=2023-10-15T18:32:58Z http.latency=20.834µs http.method=GET http.path=/ http.status=200 http.user-agent=curl/7.77.0
+// time=2023-10-15T20:32:58.926+02:00 level=INFO msg="200: OK" env=production request.time=2023-10-15T20:32:58.626+02:00 request.method=GET request.path=/ request.route="" request.ip=127.0.0.1:63932 request.length=0 response.time=2023-10-15T20:32:58.926+02:00 response.latency=100ms response.status=200 response.bytes=7 id=""
 ```
 
 ### OTEL
@@ -218,7 +218,7 @@ router.GET("/error", func(w http.ResponseWriter, r *http.Request) {
 err := http.ListenAndServe(":4242", router)
 
 // output:
-// time=2023-04-10T14:00:00Z level=INFO msg="Success"  status=200 method=GET path=/ ip=::1 latency=25.958µs user-agent=curl/7.77.0 time=2023-04-10T14:00:00Z request-id=229c7fc8-64f5-4467-bc4a-940700503b0d
+// time=2023-10-15T20:32:58.926+02:00 level=INFO msg="200: OK" env=production request.time=2023-10-15T20:32:58.626Z request.method=GET request.path=/ request.route="" request.ip=127.0.0.1:63932 request.length=0 response.time=2023-10-15T20:32:58Z response.latency=100ms response.status=200 response.bytes=7 id=""
 ```
 
 ### Using custom logger sub-group
@@ -274,7 +274,7 @@ router.GET("/", func(w http.ResponseWriter, r *http.Request) {
 err := http.ListenAndServe(":4242", router)
 
 // output:
-// time=2023-10-15T20:32:58.926+02:00 level=INFO msg=OK env=production time=2023-10-15T18:32:58Z latency=20.834µs method=GET path=/ status=200 user-agent=curl/7.77.0 foo=bar
+// time=2023-10-15T20:32:58.926+02:00 level=INFO msg="200: OK" env=production request.time=2023-10-15T20:32:58.626+02:00 request.method=GET request.path=/ request.route="" request.ip=127.0.0.1:63932 request.length=0 response.time=2023-10-15T20:32:58.926+02:00 response.latency=100ms response.status=200 response.bytes=7 id="" foo=bar
 ```
 
 ### JSON output
@@ -298,7 +298,7 @@ router.GET("/", func(w http.ResponseWriter, r *http.Request) {
 err := http.ListenAndServe(":4242", router)
 
 // output:
-// {"time":"2023-10-15T20:48:12.859856+02:00","level":"INFO","msg":"OK","env":"production","time":"2023-10-15T18:48:12Z","latency":4417,"method":"GET","path":"/","status":200,"user-agent":"curl/7.77.0"}
+// {"time":"2023-10-15T20:32:58.926+02:00","level":"INFO","msg":"200: OK","env":"production","http":{"request":{"time":"2023-10-15T20:32:58.626+02:00","method":"GET","path":"/","route":"","ip":"127.0.0.1:55296","length":0},"response":{"time":"2023-10-15T20:32:58.926+02:00","latency":100000,"status":200,"length":7},"id":""}}
 ```
 
 ## 🤝 Contributing
