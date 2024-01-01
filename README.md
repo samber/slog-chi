@@ -90,7 +90,7 @@ router.GET("/error", func(w http.ResponseWriter, r *http.Request) {
 err := http.ListenAndServe(":4242", router)
 
 // output:
-// time=2023-10-15T20:32:58.926+02:00 level=INFO msg="200: OK" env=production request.time=2023-10-15T20:32:58.626+02:00 request.method=GET request.path=/ request.route="" request.ip=127.0.0.1:63932 request.length=0 response.time=2023-10-15T20:32:58.926+02:00 response.latency=100ms response.status=200 response.bytes=7 id=""
+// time=2023-10-15T20:32:58.926+02:00 level=INFO msg="200: OK" env=production request.time=2023-10-15T20:32:58.626+02:00 request.method=GET request.path=/ request.route="" request.ip=127.0.0.1:63932 request.length=0 response.time=2023-10-15T20:32:58.926+02:00 response.latency=100ms response.status=200 response.length=7 id=""
 ```
 
 ### OTEL
@@ -218,7 +218,7 @@ router.GET("/error", func(w http.ResponseWriter, r *http.Request) {
 err := http.ListenAndServe(":4242", router)
 
 // output:
-// time=2023-10-15T20:32:58.926+02:00 level=INFO msg="200: OK" env=production request.time=2023-10-15T20:32:58.626Z request.method=GET request.path=/ request.route="" request.ip=127.0.0.1:63932 request.length=0 response.time=2023-10-15T20:32:58Z response.latency=100ms response.status=200 response.bytes=7 id=""
+// time=2023-10-15T20:32:58.926+02:00 level=INFO msg="200: OK" env=production request.time=2023-10-15T20:32:58.626Z request.method=GET request.path=/ request.route="" request.ip=127.0.0.1:63932 request.length=0 response.time=2023-10-15T20:32:58Z response.latency=100ms response.status=200 response.length=7 id=""
 ```
 
 ### Using custom logger sub-group
@@ -245,7 +245,7 @@ router.GET("/error", func(w http.ResponseWriter, r *http.Request) {
 err := http.ListenAndServe(":4242", router)
 
 // output:
-// time=2023-10-15T20:32:58.926+02:00 level=INFO msg=OK env=production http.time=2023-10-15T18:32:58Z http.latency=20.834µs http.method=GET http.path=/ http.status=200 http.user-agent=curl/7.77.0
+// time=2023-10-15T20:32:58.926+02:00 level=INFO msg="200: OK" env=production http.request.time=2023-10-15T20:32:58.626+02:00 http.request.method=GET http.request.path=/ http.request.route="" http.request.ip=127.0.0.1:63932 http.request.length=0 http.response.time=2023-10-15T20:32:58.926+02:00 http.response.latency=100ms http.response.status=200 http.response.length=7 http.id=""
 ```
 
 ### Adding custom attributes
@@ -274,7 +274,7 @@ router.GET("/", func(w http.ResponseWriter, r *http.Request) {
 err := http.ListenAndServe(":4242", router)
 
 // output:
-// time=2023-10-15T20:32:58.926+02:00 level=INFO msg="200: OK" env=production request.time=2023-10-15T20:32:58.626+02:00 request.method=GET request.path=/ request.route="" request.ip=127.0.0.1:63932 request.length=0 response.time=2023-10-15T20:32:58.926+02:00 response.latency=100ms response.status=200 response.bytes=7 id="" foo=bar
+// time=2023-10-15T20:32:58.926+02:00 level=INFO msg="200: OK" env=production request.time=2023-10-15T20:32:58.626+02:00 request.method=GET request.path=/ request.route="" request.ip=127.0.0.1:63932 request.length=0 response.time=2023-10-15T20:32:58.926+02:00 response.latency=100ms response.status=200 response.length=7 id="" foo=bar
 ```
 
 ### JSON output

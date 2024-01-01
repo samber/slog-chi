@@ -104,33 +104,39 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 			start := time.Now()
 			path := r.URL.Path
 
+			// dump request body
 			br := newBodyReader(r.Body, RequestBodyMaxSize, config.WithRequestBody)
 			r.Body = br
 
+			// dump response body
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			var bw *bodyWriter
-
-			// dump response body
 			if config.WithResponseBody {
 				bw = newBodyWriter(ResponseBodyMaxSize)
 				ww.Tee(bw)
 			}
+
 			defer func() {
 				status := ww.Status()
 				method := r.Method
+				host := r.Host
 				route := chi.RouteContext(r.Context()).RoutePattern()
 				end := time.Now()
 				latency := end.Sub(start)
 				userAgent := r.UserAgent()
+				ip := r.RemoteAddr
+				referer := r.Referer()
 
 				baseAttributes := []slog.Attr{}
 
 				requestAttributes := []slog.Attr{
 					slog.Time("time", start),
 					slog.String("method", method),
+					slog.String("host", host),
 					slog.String("path", path),
 					slog.String("route", route),
-					slog.String("ip", r.RemoteAddr),
+					slog.String("ip", ip),
+					slog.String("referer", referer),
 				}
 
 				responseAttributes := []slog.Attr{
