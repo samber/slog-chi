@@ -103,6 +103,12 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			path := r.URL.Path
+			query := r.URL.RawQuery
+
+			params := map[string]string{}
+			for i, k := range chi.RouteContext(r.Context()).URLParams.Keys {
+				params[k] = chi.RouteContext(r.Context()).URLParams.Values[i]
+			}
 
 			// dump request body
 			br := newBodyReader(r.Body, RequestBodyMaxSize, config.WithRequestBody)
@@ -134,6 +140,8 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					slog.String("method", method),
 					slog.String("host", host),
 					slog.String("path", path),
+					slog.String("query", query),
+					slog.Any("params", params),
 					slog.String("route", route),
 					slog.String("ip", ip),
 					slog.String("referer", referer),

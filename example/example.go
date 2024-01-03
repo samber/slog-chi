@@ -42,7 +42,7 @@ func main() {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome"))
 	})
-	r.Get("/foobar/*", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/foobar/{id}", func(w http.ResponseWriter, r *http.Request) {
 		slogchi.AddCustomAttributes(r, slog.String("foo", "bar"))
 		w.Write([]byte("welcome"))
 	})
