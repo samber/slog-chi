@@ -105,11 +105,6 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 			path := r.URL.Path
 			query := r.URL.RawQuery
 
-			params := map[string]string{}
-			for i, k := range chi.RouteContext(r.Context()).URLParams.Keys {
-				params[k] = chi.RouteContext(r.Context()).URLParams.Values[i]
-			}
-
 			// dump request body
 			br := newBodyReader(r.Body, RequestBodyMaxSize, config.WithRequestBody)
 			r.Body = br
@@ -123,6 +118,11 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 			}
 
 			defer func() {
+				params := map[string]string{}
+				for i, k := range chi.RouteContext(r.Context()).URLParams.Keys {
+					params[k] = chi.RouteContext(r.Context()).URLParams.Values[i]
+				}
+
 				status := ww.Status()
 				method := r.Method
 				host := r.Host
