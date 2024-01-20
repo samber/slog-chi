@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -42,7 +43,8 @@ func main() {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome"))
 	})
-	r.Get("/foobar/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.Post("/foobar/{id}", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.ReadAll(r.Body)
 		slogchi.AddCustomAttributes(r, slog.String("foo", "bar"))
 		w.Write([]byte("welcome"))
 	})
