@@ -175,12 +175,16 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 
 				// request headers
 				if config.WithRequestHeader {
+					kv := []any{}
+
 					for k, v := range r.Header {
 						if _, found := HiddenRequestHeaders[strings.ToLower(k)]; found {
 							continue
 						}
-						requestAttributes = append(requestAttributes, slog.Group("header", slog.Any(k, v)))
+						kv = append(kv, slog.Any(k, v))
 					}
+
+					requestAttributes = append(requestAttributes, slog.Group("header", kv...))
 				}
 
 				if config.WithUserAgent {
@@ -195,12 +199,16 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 
 				// response headers
 				if config.WithResponseHeader {
+					kv := []any{}
+
 					for k, v := range w.Header() {
 						if _, found := HiddenResponseHeaders[strings.ToLower(k)]; found {
 							continue
 						}
-						responseAttributes = append(responseAttributes, slog.Group("header", slog.Any(k, v)))
+						kv = append(kv, slog.Any(k, v))
 					}
+
+					responseAttributes = append(responseAttributes, slog.Group("header", kv...))
 				}
 
 				attributes := append(
