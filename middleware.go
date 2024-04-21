@@ -161,14 +161,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				}
 
 				// otel
-				if config.WithTraceID {
-					traceID := trace.SpanFromContext(r.Context()).SpanContext().TraceID().String()
-					baseAttributes = append(baseAttributes, slog.String(TraceIDKey, traceID))
-				}
-				if config.WithSpanID {
-					spanID := trace.SpanFromContext(r.Context()).SpanContext().SpanID().String()
-					baseAttributes = append(baseAttributes, slog.String(SpanIDKey, spanID))
-				}
+				baseAttributes = append(baseAttributes, extractTraceSpanID(r.Context(), config.WithTraceID, config.WithSpanID)...)
 
 				// request body
 				requestAttributes = append(requestAttributes, slog.Int("length", br.bytes))
@@ -268,4 +261,30 @@ func AddCustomAttributes(r *http.Request, attr slog.Attr) {
 	case []slog.Attr:
 		*r = *r.WithContext(context.WithValue(r.Context(), customAttributesCtxKey, append(attrs, attr)))
 	}
+}
+
+func extractTraceSpanID(ctx context.Context, withTraceID bool, withSpanID bool) []slog.Attr {
+	if !(withTraceID || withSpanID) {
+		return []slog.Attr{}
+	}
+
+	span := trace.SpanFromContext(ctx)
+	if !span.IsRecording() {
+		return []slog.Attr{}
+	}
+
+	attrs := []slog.Attr{}
+	spanCtx := span.SpanContext()
+
+	if withTraceID && spanCtx.HasTraceID() {
+		traceID := trace.SpanFromContext(ctx).SpanContext().TraceID().String()
+		attrs = append(attrs, slog.String(TraceIDKey, traceID))
+	}
+
+	if withSpanID && spanCtx.HasSpanID() {
+		spanID := spanCtx.SpanID().String()
+		attrs = append(attrs, slog.String(SpanIDKey, spanID))
+	}
+
+	return attrs
 }
