@@ -94,6 +94,7 @@ Other global parameters:
 ```go
 slogchi.TraceIDKey = "trace-id"
 slogchi.SpanIDKey = "span-id"
+slogchi.RequestIDKey = "id"
 slogchi.RequestBodyMaxSize  = 64 * 1024 // 64KB
 slogchi.ResponseBodyMaxSize = 64 * 1024 // 64KB
 slogchi.HiddenRequestHeaders = map[string]struct{}{ ... }

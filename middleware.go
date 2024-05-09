@@ -18,8 +18,9 @@ type customAttributesCtxKeyType struct{}
 var customAttributesCtxKey = customAttributesCtxKeyType{}
 
 var (
-	TraceIDKey = "trace-id"
-	SpanIDKey  = "span-id"
+	TraceIDKey   = "trace-id"
+	SpanIDKey    = "span-id"
+	RequestIDKey = "id"
 
 	RequestBodyMaxSize  = 64 * 1024 // 64KB
 	ResponseBodyMaxSize = 64 * 1024 // 64KB
@@ -157,7 +158,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				}
 
 				if config.WithRequestID {
-					baseAttributes = append(baseAttributes, slog.String("id", middleware.GetReqID(r.Context())))
+					baseAttributes = append(baseAttributes, slog.String(RequestIDKey, middleware.GetReqID(r.Context())))
 				}
 
 				// otel
