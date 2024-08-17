@@ -107,8 +107,8 @@ Attributes will be injected in log payload.
 Other global parameters:
 
 ```go
-slogchi.TraceIDKey = "trace-id"
-slogchi.SpanIDKey = "span-id"
+slogchi.TraceIDKey = "trace_id"
+slogchi.SpanIDKey = "span_id"
 slogchi.RequestIDKey = "id"
 slogchi.RequestBodyMaxSize  = 64 * 1024 // 64KB
 slogchi.ResponseBodyMaxSize = 64 * 1024 // 64KB
