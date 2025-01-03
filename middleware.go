@@ -122,6 +122,13 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 			}
 
 			defer func() {
+				// Pass thru filters and skip early the code below, to prevent unnecessary processing.
+				for _, filter := range config.Filters {
+					if !filter(ww, r) {
+						return
+					}
+				}
+
 				params := map[string]string{}
 				for i, k := range chi.RouteContext(r.Context()).URLParams.Keys {
 					params[k] = chi.RouteContext(r.Context()).URLParams.Values[i]
@@ -227,12 +234,6 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					switch attrs := v.(type) {
 					case []slog.Attr:
 						attributes = append(attributes, attrs...)
-					}
-				}
-
-				for _, filter := range config.Filters {
-					if !filter(ww, r) {
-						return
 					}
 				}
 
