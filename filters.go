@@ -3,6 +3,7 @@ package slogchi
 import (
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -12,7 +13,9 @@ type Filter func(ww middleware.WrapResponseWriter, r *http.Request) bool
 
 // Basic
 func Accept(filter Filter) Filter { return filter }
-func Ignore(filter Filter) Filter { return filter }
+func Ignore(filter Filter) Filter {
+	return func(ww middleware.WrapResponseWriter, r *http.Request) bool { return !filter(ww, r) }
+}
 
 // Method
 func AcceptMethod(methods ...string) Filter {
@@ -46,25 +49,13 @@ func IgnoreMethod(methods ...string) Filter {
 // Status
 func AcceptStatus(statuses ...int) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		for _, status := range statuses {
-			if status == ww.Status() {
-				return true
-			}
-		}
-
-		return false
+		return slices.Contains(statuses, ww.Status())
 	}
 }
 
 func IgnoreStatus(statuses ...int) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		for _, status := range statuses {
-			if status == ww.Status() {
-				return false
-			}
-		}
-
-		return true
+		return !slices.Contains(statuses, ww.Status())
 	}
 }
 
@@ -111,25 +102,13 @@ func IgnoreStatusLessThanOrEqual(status int) Filter {
 // Path
 func AcceptPath(urls ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		for _, url := range urls {
-			if r.URL.Path == url {
-				return true
-			}
-		}
-
-		return false
+		return slices.Contains(urls, r.URL.Path)
 	}
 }
 
 func IgnorePath(urls ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		for _, url := range urls {
-			if r.URL.Path == url {
-				return false
-			}
-		}
-
-		return true
+		return !slices.Contains(urls, r.URL.Path)
 	}
 }
 
@@ -232,25 +211,13 @@ func IgnorePathMatch(regs ...regexp.Regexp) Filter {
 // Host
 func AcceptHost(hosts ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		for _, host := range hosts {
-			if r.URL.Host == host {
-				return true
-			}
-		}
-
-		return false
+		return slices.Contains(hosts, r.URL.Host)
 	}
 }
 
 func IgnoreHost(hosts ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		for _, host := range hosts {
-			if r.URL.Host == host {
-				return false
-			}
-		}
-
-		return true
+		return !slices.Contains(hosts, r.URL.Host)
 	}
 }
 
