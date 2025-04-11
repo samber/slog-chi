@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -121,6 +122,11 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				ww.Tee(bw)
 			}
 
+			// Make sure we create a map only once per request (in case we have multiple middleware instances)
+			if v := r.Context().Value(customAttributesCtxKey); v == nil {
+				r = r.WithContext(context.WithValue(r.Context(), customAttributesCtxKey, &sync.Map{}))
+			}
+
 			defer func() {
 				// Pass thru filters and skip early the code below, to prevent unnecessary processing.
 				for _, filter := range config.Filters {
@@ -231,10 +237,11 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 
 				// custom context values
 				if v := r.Context().Value(customAttributesCtxKey); v != nil {
-					switch attrs := v.(type) {
-					case []slog.Attr:
-						attributes = append(attributes, attrs...)
-					}
+					m := v.(*sync.Map)
+					m.Range(func(key, value any) bool {
+						attributes = append(attributes, slog.Attr{Key: key.(string), Value: value.(slog.Value)})
+						return true
+					})
 				}
 
 				level := config.DefaultLevel
@@ -252,17 +259,18 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 	}
 }
 
-// AddCustomAttributes adds custom attributes to the request context.
-func AddCustomAttributes(r *http.Request, attr slog.Attr) {
-	v := r.Context().Value(customAttributesCtxKey)
-	if v == nil {
-		*r = *r.WithContext(context.WithValue(r.Context(), customAttributesCtxKey, []slog.Attr{attr}))
-		return
-	}
+// AddCustomAttributes adds custom attributes to the request context. This func can be called from any handler, as long as the slog-chi middleware is already mounted.
+func AddCustomAttributes(r *http.Request, attr ...slog.Attr) {
+	AddContextAttributes(r.Context(), attr...)
+}
 
-	switch attrs := v.(type) {
-	case []slog.Attr:
-		*r = *r.WithContext(context.WithValue(r.Context(), customAttributesCtxKey, append(attrs, attr)))
+// AddContextAttributes is the same as AddCustomAttributes, but it doesn't need access to the request struct.
+func AddContextAttributes(ctx context.Context, attr ...slog.Attr) {
+	if v := ctx.Value(customAttributesCtxKey); v != nil {
+		m := v.(*sync.Map)
+		for _, a := range attr {
+			m.Store(a.Key, a.Value)
+		}
 	}
 }
 
