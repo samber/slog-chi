@@ -259,7 +259,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 	}
 }
 
-// AddCustomAttributes adds custom attributes to the request context. This func can be called from any handler, as long as the slog-chi middleware is already mounted.
+// AddCustomAttributes adds custom attributes to the request context. This func can be called from any handler or middleware, as long as the slog-chi middleware is already mounted.
 func AddCustomAttributes(r *http.Request, attr slog.Attr) {
 	AddContextAttributes(r.Context(), attr)
 }
