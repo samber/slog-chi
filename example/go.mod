@@ -5,7 +5,7 @@ go 1.21
 replace github.com/samber/slog-chi => ../
 
 require (
-	github.com/go-chi/chi/v5 v5.2.0
+	github.com/go-chi/chi/v5 v5.2.1
 	github.com/samber/slog-chi v1.0.0
 	github.com/samber/slog-formatter v1.0.0
 )
