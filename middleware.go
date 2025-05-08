@@ -237,11 +237,12 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 
 				// custom context values
 				if v := r.Context().Value(customAttributesCtxKey); v != nil {
-					m := v.(*sync.Map)
-					m.Range(func(key, value any) bool {
-						attributes = append(attributes, slog.Attr{Key: key.(string), Value: value.(slog.Value)})
-						return true
-					})
+					if m, ok := v.(*sync.Map); ok {
+						m.Range(func(key, value any) bool {
+							attributes = append(attributes, slog.Attr{Key: key.(string), Value: value.(slog.Value)})
+							return true
+						})
+					}
 				}
 
 				level := config.DefaultLevel
@@ -267,8 +268,9 @@ func AddCustomAttributes(r *http.Request, attr slog.Attr) {
 // AddContextAttributes is the same as AddCustomAttributes, but it doesn't need access to the request struct.
 func AddContextAttributes(ctx context.Context, attr slog.Attr) {
 	if v := ctx.Value(customAttributesCtxKey); v != nil {
-		m := v.(*sync.Map)
-		m.Store(attr.Key, attr.Value)
+		if m, ok := v.(*sync.Map); ok {
+			m.Store(attr.Key, attr.Value)
+		}
 	}
 }
 
