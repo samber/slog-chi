@@ -13,7 +13,7 @@ type bodyWriter struct {
 // implements io.Writer
 func (w *bodyWriter) Write(b []byte) (int, error) {
 	if w.body.Len()+len(b) > w.maxSize {
-		return w.body.Write(b[:w.maxSize-w.body.Len()])
+		w.body.Truncate(len(b))
 	}
 	return w.body.Write(b)
 }
@@ -35,7 +35,7 @@ type bodyReader struct {
 // implements io.Reader
 func (r *bodyReader) Read(b []byte) (int, error) {
 	n, err := r.ReadCloser.Read(b)
-	if r.body != nil {
+	if r.body != nil && r.body.Len() < r.maxSize {
 		if r.body.Len()+n > r.maxSize {
 			r.body.Write(b[:r.maxSize-r.body.Len()])
 		} else {
@@ -49,7 +49,7 @@ func (r *bodyReader) Read(b []byte) (int, error) {
 func newBodyReader(reader io.ReadCloser, maxSize int, recordBody bool) *bodyReader {
 	var body *bytes.Buffer
 	if recordBody {
-		body = bytes.NewBufferString("")
+		body = new(bytes.Buffer)
 	}
 	return &bodyReader{
 		ReadCloser: reader,
