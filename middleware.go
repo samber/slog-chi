@@ -53,6 +53,7 @@ type Config struct {
 	WithSpanID         bool
 	WithTraceID        bool
 	WithClientIP       bool
+	WithCustomMessage  func(w http.ResponseWriter, r *http.Request) string
 
 	Filters []Filter
 }
@@ -91,6 +92,7 @@ func DefaultConfig() Config {
 		WithSpanID:         false,
 		WithTraceID:        false,
 		WithClientIP:       true,
+		WithCustomMessage:  nil,
 
 		Filters: []Filter{},
 	}
@@ -163,7 +165,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					requestAttributes = append(requestAttributes, slog.String("ip", ip))
 				}
 
-				responseAttributes = append(responseAttributes,	
+				responseAttributes = append(responseAttributes,
 					slog.Time("time", end.UTC()),
 					slog.Duration("latency", latency),
 					slog.Int("status", status),
@@ -251,7 +253,12 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 					level = config.ClientErrorLevel
 				}
 
-				logger.LogAttrs(r.Context(), level, strconv.Itoa(status)+": "+http.StatusText(status), attributes...)
+				msg := strconv.Itoa(status) + ": " + http.StatusText(status)
+				if config.WithCustomMessage != nil {
+					msg = config.WithCustomMessage(ww, r)
+				}
+
+				logger.LogAttrs(r.Context(), level, msg, attributes...)
 			}()
 
 			next.ServeHTTP(ww, r)

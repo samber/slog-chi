@@ -108,6 +108,7 @@ type Config struct {
 	WithSpanID         bool
 	WithTraceID        bool
 	WithClientIP       bool
+	WithCustomMessage  func(w http.ResponseWriter, r *http.Request) string
 
 	Filters []Filter
 }
