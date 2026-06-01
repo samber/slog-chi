@@ -1,9 +1,9 @@
 module github.com/samber/slog-chi
 
-go 1.23
+go 1.21
 
 require (
-	github.com/go-chi/chi/v5 v5.3.0
+	github.com/go-chi/chi/v5 v5.2.3
 	go.opentelemetry.io/otel/trace v1.29.0
 )
 
