@@ -203,20 +203,20 @@ func IgnorePathMatch(regs ...regexp.Regexp) Filter {
 // Host
 func AcceptHost(hosts ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		return slices.Contains(hosts, r.URL.Host)
+		return slices.Contains(hosts, r.Host)
 	}
 }
 
 func IgnoreHost(hosts ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
-		return !slices.Contains(hosts, r.URL.Host)
+		return !slices.Contains(hosts, r.Host)
 	}
 }
 
 func AcceptHostContains(parts ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
 		for _, part := range parts {
-			if strings.Contains(r.URL.Host, part) {
+			if strings.Contains(r.Host, part) {
 				return true
 			}
 		}
@@ -228,7 +228,7 @@ func AcceptHostContains(parts ...string) Filter {
 func IgnoreHostContains(parts ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
 		for _, part := range parts {
-			if strings.Contains(r.URL.Host, part) {
+			if strings.Contains(r.Host, part) {
 				return false
 			}
 		}
@@ -240,7 +240,7 @@ func IgnoreHostContains(parts ...string) Filter {
 func AcceptHostPrefix(prefixs ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
 		for _, prefix := range prefixs {
-			if strings.HasPrefix(r.URL.Host, prefix) {
+			if strings.HasPrefix(r.Host, prefix) {
 				return true
 			}
 		}
@@ -252,7 +252,7 @@ func AcceptHostPrefix(prefixs ...string) Filter {
 func IgnoreHostPrefix(prefixs ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
 		for _, prefix := range prefixs {
-			if strings.HasPrefix(r.URL.Host, prefix) {
+			if strings.HasPrefix(r.Host, prefix) {
 				return false
 			}
 		}
@@ -264,7 +264,7 @@ func IgnoreHostPrefix(prefixs ...string) Filter {
 func AcceptHostSuffix(suffixs ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
 		for _, suffix := range suffixs {
-			if strings.HasSuffix(r.URL.Host, suffix) {
+			if strings.HasSuffix(r.Host, suffix) {
 				return true
 			}
 		}
@@ -276,7 +276,7 @@ func AcceptHostSuffix(suffixs ...string) Filter {
 func IgnoreHostSuffix(suffixs ...string) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
 		for _, suffix := range suffixs {
-			if strings.HasSuffix(r.URL.Host, suffix) {
+			if strings.HasSuffix(r.Host, suffix) {
 				return false
 			}
 		}
@@ -288,7 +288,7 @@ func IgnoreHostSuffix(suffixs ...string) Filter {
 func AcceptHostMatch(regs ...regexp.Regexp) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
 		for _, reg := range regs {
-			if reg.MatchString(r.URL.Host) {
+			if reg.MatchString(r.Host) {
 				return true
 			}
 		}
@@ -300,7 +300,7 @@ func AcceptHostMatch(regs ...regexp.Regexp) Filter {
 func IgnoreHostMatch(regs ...regexp.Regexp) Filter {
 	return func(ww middleware.WrapResponseWriter, r *http.Request) bool {
 		for _, reg := range regs {
-			if reg.MatchString(r.URL.Host) {
+			if reg.MatchString(r.Host) {
 				return false
 			}
 		}
