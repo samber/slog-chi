@@ -2,6 +2,7 @@ package slogchi
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -106,29 +107,47 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 			path := r.URL.Path
 			query := r.URL.RawQuery
 
-			// dump request body
-			br := newBodyReader(r.Body, RequestBodyMaxSize, config.WithRequestBody)
-			r.Body = br
-
-			// dump response body
-			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
-			var bw *bodyWriter
-			if config.WithResponseBody {
-				bw = newBodyWriter(ResponseBodyMaxSize)
-				ww.Tee(bw)
-			}
-
 			// Make sure we create a map only once per request (in case we have multiple middleware instances)
 			if v := r.Context().Value(customAttributesCtxKey); v == nil {
 				r = r.WithContext(context.WithValue(r.Context(), customAttributesCtxKey, &sync.Map{}))
 			}
 
+			// Apply filters BEFORE reading the request body to avoid unnecessary memory allocation.
+			// This is important when using filters with WithRequestBody=true, as the body
+			// capture can consume significant memory for large requests.
+			filteredOut := false
+			if len(config.Filters) > 0 {
+				filteredOut = filterEarly(config.Filters, w, r)
+			}
+
+			// dump request body only if not filtered out
+			var br *bodyReader
+			if !filteredOut {
+				br = newBodyReader(r.Body, RequestBodyMaxSize, config.WithRequestBody)
+				r.Body = br
+			}
+
+			// dump response body
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			var bw *bodyWriter
+			if config.WithResponseBody && !filteredOut {
+				bw = newBodyWriter(ResponseBodyMaxSize)
+				ww.Tee(bw)
+			}
+
 			defer func() {
-				// Pass thru filters and skip early the code below, to prevent unnecessary processing.
-				for _, filter := range config.Filters {
-					if !filter(ww, r) {
-						return
+				// Apply filters after response is written (for status-based filters)
+				if !filteredOut && len(config.Filters) > 0 {
+					for _, filter := range config.Filters {
+						if !filter(ww, r) {
+							filteredOut = true
+							break
+						}
 					}
+				}
+
+				if filteredOut {
+					return
 				}
 
 				params := map[string]string{}
@@ -145,6 +164,14 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				userAgent := r.UserAgent()
 				ip := r.RemoteAddr
 				referer := r.Referer()
+
+				// Get the body reader if it was created
+				var body string
+				var bodyLength int
+				if br != nil {
+					bodyLength = br.bytes
+					body = br.body.String()
+				}
 
 				baseAttributes := make([]slog.Attr, 0, 3)
 				requestAttributes := make([]slog.Attr, 0, 13)
@@ -179,9 +206,9 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 				baseAttributes = append(baseAttributes, extractTraceSpanID(r.Context(), config.WithTraceID, config.WithSpanID)...)
 
 				// request body
-				requestAttributes = append(requestAttributes, slog.Int("length", br.bytes))
+				requestAttributes = append(requestAttributes, slog.Int("length", bodyLength))
 				if config.WithRequestBody {
-					requestAttributes = append(requestAttributes, slog.String("body", br.body.String()))
+					requestAttributes = append(requestAttributes, slog.String("body", body))
 				}
 
 				// request headers
@@ -204,7 +231,7 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 
 				// response body
 				responseAttributes = append(responseAttributes, slog.Int("length", ww.BytesWritten()))
-				if config.WithResponseBody {
+				if config.WithResponseBody && bw != nil {
 					responseAttributes = append(responseAttributes, slog.String("body", bw.body.String()))
 				}
 
@@ -265,6 +292,61 @@ func NewWithConfig(logger *slog.Logger, config Config) func(http.Handler) http.H
 		})
 	}
 }
+
+// filterEarly checks filters before the request is processed.
+// Returns true if the request should be filtered out (not logged).
+func filterEarly(filters []Filter, w http.ResponseWriter, r *http.Request) bool {
+	// Create a preview writer to check filters
+	pw := &previewWriter{ResponseWriter: w}
+
+	// Check all filters
+	for _, filter := range filters {
+		if !filter(pw, r) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// previewWriter wraps http.ResponseWriter to capture status for early filter checks
+type previewWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (p *previewWriter) WriteHeader(status int) {
+	p.status = status
+	p.ResponseWriter.WriteHeader(status)
+}
+
+func (p *previewWriter) Status() int {
+	return p.status
+}
+
+func (p *previewWriter) BytesWritten() int {
+	return 0
+}
+
+func (p *previewWriter) Unwrap() http.ResponseWriter {
+	return p.ResponseWriter
+}
+
+func (p *previewWriter) Discard() {}
+
+func (p *previewWriter) Tee(w io.Writer) {
+	// Not used in preview mode
+}
+
+// statusFilterKey is the context key for storing status-based filters
+type statusFilterKey struct{}
+
+var statusFilterKeyInstance = statusFilterKey{}
+
+// previewWriterKey is the context key for storing the preview writer
+type previewWriterKey struct{}
+
+var previewWriterKeyInstance = previewWriterKey{}
 
 // AddCustomAttributes adds custom attributes to the request context. This func can be called from any handler or middleware, as long as the slog-chi middleware is already mounted.
 func AddCustomAttributes(r *http.Request, attrs ...slog.Attr) {
